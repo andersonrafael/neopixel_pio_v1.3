@@ -255,7 +255,6 @@ void play_startup_melody()
     }
   }
 
-  // Toque final característico
   buzzer_beep_freq(NOTE_E5, 150);
   sleep_ms(50);
   buzzer_beep_freq(NOTE_D5, 150);
@@ -449,15 +448,14 @@ bool Movimento_direita(bool exec)
     mapeamento[cursorX][cursorY - 2] = 0;
     peca_selecionada = false;
 
-    // Verifica se o movimento foi válido
     if (Movimento_valido())
     {
-      movimentos_errados = 0; // Reseta contador de erros
-      mostrar_dica = false;   // Desativa dica
+      movimentos_errados = 0; 
+      mostrar_dica = false;   
     }
     else
     {
-      movimentos_errados++; // Incrementa contador de erros
+      movimentos_errados++; 
     }
 
     return true;
@@ -549,7 +547,7 @@ void Botao_A_press()
 
   if (!gpio_get(Botao_A))
   {
-    buzzer_beep_freq(440, 100); // A4
+    buzzer_beep_freq(440, 100); 
 
     while (!gpio_get(Botao_A))
       sleep_ms(50);
@@ -577,7 +575,6 @@ void Botao_A_press()
       exec = Movimento_baixo(exec);
     }
 
-    // Ativa dica após dois movimentos errados
     if (movimentos_errados >= 2)
     {
       mostrar_dica = true;
@@ -655,14 +652,9 @@ int main()
 
   npInit(LED_PIN);
 
-/*
-espaço para acrescimo da função de inicialização
-*/
   play_startup_melody();
   CarregarMapa();
   sleep_ms(100);
-
-  
 
   while (true)
   {

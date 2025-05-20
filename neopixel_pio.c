@@ -109,11 +109,11 @@
 #define NOTE_D8 4699
 #define NOTE_DS8 4978
 
-volatile int mapeamento[5][5] = {{0, 0, 0, 0, 0},
-                                 {0, 0, 0, 0, 0},
-                                 {0, 0, 0, 0, 0},
-                                 {0, 0, 0, 0, 0},
-                                 {0, 0, 0, 0, 0}};
+volatile int mapeamento[5][5] = {{0, 1, 1, 1, 0},
+                                 {1, 1, 1, 1, 1},
+                                 {1, 1, 0, 1, 1},
+                                 {1, 1, 1, 1, 1},
+                                 {0, 1, 1, 1, 0}};
 
 volatile int mapa_num[5][5] = {{24, 23, 22, 21, 20},
                                {15, 16, 17, 18, 19},
@@ -182,6 +182,26 @@ void npWrite()
     pio_sm_put_blocking(np_pio, sm, leds[i].B);
   }
   sleep_us(100);
+}
+
+void buzzer_beep_freq(uint freq, uint duration_ms)
+{
+  gpio_set_function(BUZZER_PIN, GPIO_FUNC_PWM);
+  uint slice_num = pwm_gpio_to_slice_num(BUZZER_PIN);
+
+  uint32_t clock_freq = clock_get_hz(clk_sys);
+  uint32_t top = clock_freq / freq;
+
+  pwm_set_wrap(slice_num, top);
+  pwm_set_chan_level(slice_num, pwm_gpio_to_channel(BUZZER_PIN), top / 2);
+  pwm_set_enabled(slice_num, true);
+
+  sleep_ms(duration_ms);
+
+  pwm_set_enabled(slice_num, false);
+  gpio_set_function(BUZZER_PIN, GPIO_FUNC_SIO);
+  gpio_set_dir(BUZZER_PIN, GPIO_OUT);
+  gpio_put(BUZZER_PIN, 0);
 }
 
 void play_victory_melody()
@@ -266,36 +286,6 @@ void play_startup_melody()
   buzzer_beep_freq(NOTE_F4, 300);
 }
 
-void CarregarMapa()
-{
-  int i;
-
-  npClear();
-
-  for (i = 0; i < 5; i++)
-  {
-    npSetLED(mapa_num[1][i], 102, 76, 0);
-    mapeamento[1][i] = 1;
-    npSetLED(mapa_num[2][i], 102, 76, 0);
-    mapeamento[2][i] = 1;
-    npSetLED(mapa_num[3][i], 102, 76, 0);
-    mapeamento[3][i] = 1;
-  }
-
-  for (i = 1; i < 4; i++)
-  {
-    npSetLED(mapa_num[0][i], 102, 76, 0);
-    mapeamento[0][i] = 1;
-    npSetLED(mapa_num[4][i], 102, 76, 0);
-    mapeamento[4][i] = 1;
-  }
-
-  npSetLED(mapa_num[2][2], 0, 0, 0);
-  mapeamento[2][2] = 0;
-
-  npWrite();
-}
-
 void AtualizarMapa()
 {
   int i, j;
@@ -308,7 +298,7 @@ void AtualizarMapa()
       if (mapeamento[i][j] == 0)
         npSetLED(mapa_num[i][j], 0, 0, 0);
       else if (mapeamento[i][j] == 1)
-        npSetLED(mapa_num[i][j], 102, 76, 0);
+        npSetLED(mapa_num[i][j], 102, 76, 0); // 0, 50, 102
       else if (mapeamento[i][j] == 2)
         npSetLED(mapa_num[i][j], 25, 100, 10);
       else if (mapeamento[i][j] == 3)
@@ -351,26 +341,6 @@ void AtualizarMapa()
 
   npSetLED(mapa_num[cursorX][cursorY], 150, 150, 150);
   npWrite();
-}
-
-void buzzer_beep_freq(uint freq, uint duration_ms)
-{
-  gpio_set_function(BUZZER_PIN, GPIO_FUNC_PWM);
-  uint slice_num = pwm_gpio_to_slice_num(BUZZER_PIN);
-
-  uint32_t clock_freq = clock_get_hz(clk_sys);
-  uint32_t top = clock_freq / freq;
-
-  pwm_set_wrap(slice_num, top);
-  pwm_set_chan_level(slice_num, pwm_gpio_to_channel(BUZZER_PIN), top / 2);
-  pwm_set_enabled(slice_num, true);
-
-  sleep_ms(duration_ms);
-
-  pwm_set_enabled(slice_num, false);
-  gpio_set_function(BUZZER_PIN, GPIO_FUNC_SIO);
-  gpio_set_dir(BUZZER_PIN, GPIO_OUT);
-  gpio_put(BUZZER_PIN, 0);
 }
 
 void Joystick_X()
@@ -602,8 +572,6 @@ void Restart(){
                                  {1, 1, 1, 1, 1},
                                  {0, 1, 1, 1, 0}};
 
-  play_victory_melody();
-
   for ( i = 0; i < 3; i++){
     for ( linha = 0; linha <= MAX_LINHAS; linha++){
       for ( coluna = 0; coluna <= MAX_COLUNAS; coluna++){
@@ -629,6 +597,7 @@ void Botao_B_press()
 {
   if (!gpio_get(Botao_B))
   {
+    play_victory_melody();
     Restart();
   }
 }
@@ -653,7 +622,7 @@ int main()
   npInit(LED_PIN);
 
   play_startup_melody();
-  CarregarMapa();
+  Restart();
   sleep_ms(100);
 
   while (true)
